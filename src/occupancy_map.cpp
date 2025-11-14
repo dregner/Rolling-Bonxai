@@ -30,7 +30,7 @@ namespace Bonxai
     }
 
     MapUtils::CellOcc::CellOcc()
-    : update_id(4), probability_log(MapUtils::UnknownProbability) {}
+    : update_id(4), probability_log(MapUtils::UnknownProbability), count(0), mr(0), mg(0), mb(0) {}
 
     OccupancyMap::OccupancyMap(double resolution)
     :
@@ -188,10 +188,39 @@ namespace Bonxai
         coords.clear();
 
         getOccupiedVoxels(coords);
+        // auto acessor = const_cast<VoxelGrid<MapUtils::CellOcc>::Accessor&>(accessor_);
         for (const auto& coord : coords)
         {
             const auto p = grid_.coordToPos(coord);
-            points.emplace_back(p.x,p.y,p.z);
+            pcl::PointXYZRGB pt;
+            pt.x = p.x;
+            pt.y = p.y;
+            pt.z = p.z;
+            if (auto* cell = accessor_.value(coord,false))
+            {
+                if (cell->count > 0)
+                {
+                    uint8_t r = static_cast<uint8_t>(cell->mr / cell->count);
+                    uint8_t g = static_cast<uint8_t>(cell->mg / cell->count);
+                    uint8_t b = static_cast<uint8_t>(cell->mb / cell->count);
+                    pt.r = r;
+                    pt.g = g;
+                    pt.b = b;
+                }
+                else
+                {
+                    pt.r = 0;
+                    pt.g = 0;
+                    pt.b = 0;
+                }
+            }
+            else
+            {
+                pt.r = 0;
+                pt.g = 0;
+                pt.b = 0;
+            }
+            points.emplace_back(pt);
         }
     }
 
@@ -224,7 +253,7 @@ namespace Bonxai
         }
     }
 
-    void OccupancyMap::addHitPoint(const CoordT& coord,Bonxai::VoxelGrid<MapUtils::CellOcc>::Accessor& accessor)
+    void OccupancyMap::addHitPoint(const CoordT& coord,Bonxai::VoxelGrid<MapUtils::CellOcc>::Accessor& accessor,const std::array<uint8_t,3>& rgb_opt)
     {
         MapUtils::CellOcc* cell = accessor.value(coord,true);
 
@@ -236,6 +265,14 @@ namespace Bonxai
             cell->update_id = update_count_;
             hit_coords_.push_back(coord);
         }
+        // accumulate color and count
+        if (cell->count == 0)
+            cell->mr = cell->mg = cell->mb = 0;
+
+        cell->mr += static_cast<uint8_t>(rgb_opt[0]);
+        cell->mg += static_cast<uint8_t>(rgb_opt[1]);
+        cell->mb += static_cast<uint8_t>(rgb_opt[2]);
+        cell->count += 1;
     }
 
     void OccupancyMap::addHitPoint(const Vector3D& point)

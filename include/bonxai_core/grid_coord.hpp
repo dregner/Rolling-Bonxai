@@ -151,13 +151,13 @@ inline PointOut ConvertPoint(const PointIn& v) {
     return v;
   }
   if constexpr (type_has_method_x<PointIn>::value) {
-    return {v.x(), v.y(), v.z()};
+    return {static_cast<float>(v.x()), static_cast<float>(v.y()), static_cast<float>(v.z())};
   }
   if constexpr (type_has_member_x<PointIn>::value) {
-    return {v.x, v.y, v.z};
+    return {static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z)};
   }
   if constexpr (type_is_vector<PointIn>::value) {
-    return {v[0], v[1], v[2]};
+    return {static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2])};
   }
 }
 

@@ -21,6 +21,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <unordered_map>
+#include <optional>
 
 namespace RM
 {
@@ -45,9 +46,9 @@ namespace RM
     class ChunkManager
     {
     public:
-        using PCLPoint = pcl::PointXYZ;
-        using PCLPointCloud = pcl::PointCloud<pcl::PointXYZ>;
-        using PCLPointCloudSharedPtr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+        using PCLPoint = pcl::PointXYZRGB;
+        using PCLPointCloud = pcl::PointCloud<pcl::PointXYZRGB>;
+        using PCLPointCloudSharedPtr = pcl::PointCloud<pcl::PointXYZRGB>::Ptr;
         using ChunkKey = std::string;
         using MapPtr = std::shared_ptr<Bonxai::OccupancyMap>;
         using MapAccessor = Bonxai::VoxelGrid<Bonxai::MapUtils::CellOcc>::Accessor;
@@ -179,7 +180,7 @@ namespace RM
          * @param hit_voxel in map frame
          * @param source chunk
          */
-        void updateAllHitPoints(Bonxai::CoordT& hit_voxel,Bonxai::CoordT& source_chunk);
+        void updateAllHitPoints(Bonxai::CoordT& hit_voxel,Bonxai::CoordT& source_chunk, const std::array<uint8_t,3>& rgb);
 
         /**
          * @brief Update the end points of the laser scan as miss
@@ -194,7 +195,7 @@ namespace RM
          * @param source chunk
          * @param bool is_hit, true if the update is for a hit point, false if miss point
          */
-        void updateAllHitOrMissPoints(Bonxai::CoordT& target_voxel,Bonxai::CoordT& source_chunk,bool is_hit);
+        void updateAllHitOrMissPoints(Bonxai::CoordT& target_voxel,Bonxai::CoordT& source_chunk,const std::array<uint8_t,3>& rgb,bool is_hit);
 
         /**
          * @brief Raycast from start to end and update all the free cells

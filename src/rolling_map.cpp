@@ -182,6 +182,8 @@ void RollingMapNode::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSha
         }
     }
     pc.resize(filtered_index);
+    pc.width = static_cast<uint32_t>(pc.points.size());
+    pc.height = 1;
     
     // Remove Noisy Points using SOR filter
     if (use_sor_filter_)
@@ -218,9 +220,12 @@ void RollingMapNode::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSha
     PCLPointCloud world_points;
     pcl::transformPointCloud(pc,world_points,sensor_to_world);
     const auto& t = sensor_to_world_transform_stamped.transform.translation;
-    PCLPoint global_sensor_position(t.x,t.y,t.z);
+    PCLPoint global_sensor_position;
+    global_sensor_position.x = t.x;
+    global_sensor_position.y = t.y;
+    global_sensor_position.z = t.z;
     
-    //Chunk Updates happen here!
+    //Chunk Updates happen here! Make this to accept color
     bool did_update_happen = map_manager_.updateMap(world_points,global_sensor_position);
 
     //Get the visualization stuff
@@ -228,7 +233,7 @@ void RollingMapNode::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSha
     {
         if (did_update_happen)
         {
-            map_manager_.getOccupiedVoxels(occupied_voxels_);
+            map_manager_.getOccupiedVoxels(occupied_voxels_); // occupied_voxels_ should be pcl::PointCloud<pcl::PointXYZRGB>
         }
         
         sensor_msgs::msg::PointCloud2 cloud_occ_msg;
@@ -242,7 +247,7 @@ void RollingMapNode::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSha
     {
         if (did_update_happen)
         {
-            map_manager_.getOccupiedVoxels(free_voxels_);
+            map_manager_.getOccupiedVoxels(free_voxels_); // the same for free_voxels_
         }
         
         sensor_msgs::msg::PointCloud2 cloud_free_msg;
@@ -252,6 +257,7 @@ void RollingMapNode::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSha
         free_voxel_pub_->publish(cloud_free_msg);
     }
 
+    // doesn't matter the color only XYZ
     if (viz_chunks_)
     {
         if (did_update_happen)

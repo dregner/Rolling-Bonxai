@@ -1,11 +1,17 @@
-map_frame: "map"
-sensor_frame: "zed_camera_link"
-robot_frame: "zed_camera_link"
+map_frame: "orbslam3"
+sensor_frame: "Passive/left_camera_link"
+robot_frame: "base_link"
 
-m_resolution: 0.05
+# Resoução do grid mapa - tamanho dos voxels em metros - padrão 0.05m
+m_resolution: 0.01
+
+# minima ocupação para considerar um voxel como livre - se menor que 0.12, é livre
 m_occupancy_min_thresh: 0.12
+# máxima ocupação para considerar um voxel como ocupado - se maior que 0.97, é ocupado
 m_occupancy_max_thresh: 0.97
 
+# parâmetros do sensor model - esses parâmetros são usados para definir area de medição e filtrar pontos
+# também implicam na ocupação dos voxels
 s_max_z: 2.0
 s_min_z: -2.0
 s_max_range: 5.0
@@ -13,11 +19,19 @@ s_min_range: 0.5
 s_probability_hit: 0.7
 s_probability_miss: 0.4
 
-c_chunk_dim: 64 
-c_chunk_folder_path: "Rolling-Bonxai/chunks"
+# dimensão das chuncks - cada chunk é um cubo de voxels NxNxN, onde N = c_chunk_dim
+# existe uma relaçã entre a resolução do tamanho de voxels com o tamanho do chunk
+# chunk_size = m_resolution * c_chunk_dim (metros) - exemplo: 0.015 * 81 = 1.215m - volume=1.215^3 = 1.79m³
+# c_chunk_dim é o numero de volxes em cada dimensão do chunk
+# ex.: c_chunck_dim=16/32/padrão64/128
+c_chunk_dim: 128
+c_chunk_folder_path: "/home/jetson/ros2_ws/src/Rolling-Bonxai/chunks"
 
+# opção de filtro sor (statistical outlier removal) - remoção de pontos isolados
+# cálculo da distancia média do pontos para todos os seus vizinhos, uso de threshold e desvio padrão para descartar pontos
 use_sor_filter: false
 
+# vizualização de flags
 viz_occupied: true
 viz_free: false
 viz_chunks: true

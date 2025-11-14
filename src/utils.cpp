@@ -70,9 +70,9 @@ namespace RM
         {
             return 
             {
-            (static_cast<double>(coord.x)) * resolution,
-            (static_cast<double>(coord.y)) * resolution,
-            (static_cast<double>(coord.z)) * resolution};
+            static_cast<float>(coord.x * resolution),
+            static_cast<float>(coord.y * resolution),
+            static_cast<float>(coord.z * resolution)};
 
         }
 
@@ -80,9 +80,9 @@ namespace RM
         {
             double half = 0.5 * resolution;
             return {
-            (static_cast<double>(coord.x)) * resolution + half,
-            (static_cast<double>(coord.y)) * resolution + half,
-            (static_cast<double>(coord.z)) * resolution + half};
+            static_cast<float>(coord.x* resolution + half),
+            static_cast<float>(coord.y * resolution + half),
+            static_cast<float>(coord.z * resolution + half)};
         }
 
         Bonxai::CoordT voxelCoordToChunkCoord(const Bonxai::CoordT& coord,int32_t chunk_dim)

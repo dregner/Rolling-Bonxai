@@ -35,9 +35,9 @@ namespace RM
 class RollingMapNode : public rclcpp::Node
 {
 public:
-    using PCLPoint = pcl::PointXYZ;
-    using PCLPointCloud = pcl::PointCloud<pcl::PointXYZ>;
-    using PCLPointCloudSharedPtr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+    using PCLPoint = pcl::PointXYZRGB;
+    using PCLPointCloud = pcl::PointCloud<pcl::PointXYZRGB>;
+    using PCLPointCloudSharedPtr = pcl::PointCloud<pcl::PointXYZRGB>::Ptr;
     explicit RollingMapNode(rclcpp::NodeOptions options = rclcpp::NodeOptions());
     ~RollingMapNode();
 

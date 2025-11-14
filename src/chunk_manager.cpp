@@ -132,11 +132,14 @@ namespace RM
             double range_squared = sensor_params_.max_range * sensor_params_.max_range;
             bool is_hit = distance_squared < range_squared;
 
+            //capturar a cor rgb do ponto
+            std::array<uint8_t,3> rgb = {p_map.r, p_map.g, p_map.b};
+
             if (is_hit)
             {
                 //Convert to Voxel, update the relevant map then add to the hit voxels collection
                 Bonxai::CoordT hit_voxel = utils::mapPointToVoxelCoord(p_map,map_params_.resolution);
-                updateAllHitPoints(hit_voxel,source_chunk);
+                updateAllHitPoints(hit_voxel,source_chunk,rgb);
                 end_point_voxels_map.push_back(hit_voxel);
             }
             else
@@ -161,7 +164,7 @@ namespace RM
         //Finally, increment the update count
         incrementUpdateCount();
     }
-    void ChunkManager::updateAllHitPoints(Bonxai::CoordT& hit_voxel,Bonxai::CoordT& source_chunk)
+    void ChunkManager::updateAllHitPoints(Bonxai::CoordT& hit_voxel,Bonxai::CoordT& source_chunk, const std::array<uint8_t,3>& rgb)
     {
         //Get the parent chunk
         Bonxai::CoordT parent_chunk = utils::voxelCoordToChunkCoord(hit_voxel,chunk_params_.chunk_dim);
@@ -177,12 +180,13 @@ namespace RM
 
             if (chunks_.at(target_index)->isAccessorBound())
             {
-                chunks_.at(target_index)->addHitPoint(relative_voxel);
+                auto acessor = chunks_.at(target_index)->getGrid().createAccessor();
+                chunks_.at(target_index)->addHitPoint(relative_voxel, acessor, rgb);
             }
             else
             {
                 auto accessor = chunks_.at(target_index)->getGrid().createAccessor();
-                chunks_.at(target_index)->addHitPoint(relative_voxel,accessor);
+                chunks_.at(target_index)->addHitPoint(relative_voxel,accessor, rgb);
             }
 
             //mark parent chunk as dirty if its not already
@@ -222,11 +226,11 @@ namespace RM
         }
     }
 
-    void ChunkManager::updateAllHitOrMissPoints(Bonxai::CoordT& target_voxel,Bonxai::CoordT& source_chunk,bool is_hit)
+    void ChunkManager::updateAllHitOrMissPoints(Bonxai::CoordT& target_voxel,Bonxai::CoordT& source_chunk,const std::array<uint8_t,3>& rgb,bool is_hit)
     {
         if (is_hit)
         {
-            updateAllHitPoints(target_voxel,source_chunk);
+            updateAllHitPoints(target_voxel,source_chunk,rgb);
         }
         else
         {
@@ -303,7 +307,20 @@ namespace RM
                 {
                     Bonxai::CoordT map_voxel = coord + cc_origin_voxel_map;
                     auto pcpt = utils::voxelCoordToMapPoint(map_voxel,map_params_.resolution);
-                    points.push_back(pcpt);
+
+                    // create a colored point and fill xyz
+                    pcl::PointXYZRGB pcpt_rgb;
+                    pcpt_rgb.x = pcpt.x;
+                    pcpt_rgb.y = pcpt.y;
+                    pcpt_rgb.z = pcpt.z;
+
+                    // averagedColor returns a tuple<uint8_t,uint8_t,uint8_t>
+                    auto [r,g,b] = Bonxai::MapUtils::averagedColor(cell);
+                    pcpt_rgb.r = r;
+                    pcpt_rgb.g = g;
+                    pcpt_rgb.b = b;
+
+                    points.push_back(pcpt_rgb);
                 }
 
             };

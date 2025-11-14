@@ -56,7 +56,7 @@ def launch_setup(context, *args, **kwargs):
         output='screen',
         parameters=[params],
         prefix=["gdbserver localhost:3000"],
-        remappings=[('/cloud_in', '/zed/zed_node/point_cloud/cloud_registered')])
+        remappings=[('/cloud_in', '/Active/transformed_pointcloud')])
     
     rolling_map_node = Node(
         package=package_name,
@@ -64,7 +64,7 @@ def launch_setup(context, *args, **kwargs):
         name='rolling_map_node',
         output='screen',
         parameters=[params],
-        remappings=[('/cloud_in', '/zed/zed_node/point_cloud/cloud_registered')])
+        remappings=[('/cloud_in', '/Active/transformed_pointcloud')])
     
     if dbg_flag == 'true':
         funcs.append(rolling_map_node_debug)
@@ -80,7 +80,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'param_file',
-            default_value='rolling_map_params',
+            default_value='default_params',
             description='YAML file name (with or without .yaml) in the config/ directory of the package'
         ),
         DeclareLaunchArgument(

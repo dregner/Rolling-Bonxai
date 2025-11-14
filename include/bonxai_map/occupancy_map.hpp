@@ -2,6 +2,16 @@
 
 #include <eigen3/Eigen/Geometry>
 #include <unordered_set>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+
+#include <cmath>
+#include <limits>
+#include <optional>
+#include <array>
+#include <vector>
+#include <tuple>
+#include <mutex>
 
 #include "bonxai_core/bonxai.hpp"
 
@@ -102,15 +112,36 @@ namespace Bonxai
             int32_t occupancy_threshold_log = logods(0.5);
         };
 
+        // CellOcc is the voxel data structure
         struct CellOcc
         {
             // variable used to check if a cell was already updated in this loop
             int32_t update_id {4};
             // the probability of the cell to be occupied
             int32_t probability_log {28};
+            // store the color of the cell
+            uint64_t count = 0;
+
+            // accumulate color information
+            uint64_t mr = 0;
+            uint64_t mg = 0;
+            uint64_t mb = 0;
+
 
             CellOcc();
         };
+
+        inline std::tuple<uint8_t,uint8_t,uint8_t> averagedColor(const CellOcc& cell) 
+        {
+            if (cell.count == 0)
+            {
+                return std::make_tuple<uint8_t,uint8_t,uint8_t>(0,0,0);
+            }
+            uint8_t r = static_cast<uint8_t>(cell.mr / cell.count);
+            uint8_t g = static_cast<uint8_t>(cell.mg / cell.count);
+            uint8_t b = static_cast<uint8_t>(cell.mb / cell.count);
+            return {r,g,b};
+        }
 
         const int32_t UnknownProbability = logods(0.5f);
     }
@@ -292,7 +323,7 @@ namespace Bonxai
          * @param BonxaiCoordT voxel coord in map frame
          * @param Accessor a ref to an accessor
          */
-        void addHitPoint(const Bonxai::CoordT& coord,Bonxai::VoxelGrid<MapUtils::CellOcc>::Accessor& accessor);
+        void addHitPoint(const Bonxai::CoordT& coord,Bonxai::VoxelGrid<MapUtils::CellOcc>::Accessor& accessor, const std::array<uint8_t,3>& rgb_opt);
 
         /**
          * @brief Add points that are hit. Uses inter accessor

@@ -22,9 +22,9 @@ namespace RM
     class MapManager
     {
     public:
-        using PCLPoint = pcl::PointXYZ;
-        using PCLPointCloud = pcl::PointCloud<pcl::PointXYZ>;
-        using PCLPointCloudSharedPtr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+        using PCLPoint = pcl::PointXYZRGB;
+        using PCLPointCloud = pcl::PointCloud<pcl::PointXYZRGB>;
+        using PCLPointCloudSharedPtr = pcl::PointCloud<pcl::PointXYZRGB>::Ptr;
         using ChunkKey = std::string;
         using MapPtr = std::shared_ptr<Bonxai::OccupancyMap>;
 
