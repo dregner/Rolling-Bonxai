@@ -23,7 +23,7 @@
   <depend>nav_msgs</depend>
   <depend>visualization_msgs</depend>
   <depend>angles</depend>
-  <depend>eigen3_cmake_module</depend>
+  <!-- <depend>eigen3_cmake_module</depend> -->
 
   <!-- PCL-related (optional but recommended for ROS integration) -->
   <build_depend>pcl_conversions</build_depend>
@@ -31,8 +31,8 @@
   <build_depend>pcl_msgs</build_depend>
   <exec_depend>pcl_msgs</exec_depend>
 
-  <build_depend>Eigen3</build_depend>
-  <exec_depend>Eigen3</exec_depend>
+  <!-- <build_depend>Eigen3</build_depend> -->
+  <!-- <exec_depend>Eigen3</exec_depend> -->
 
   <export>
     <build_type>ament_cmake</build_type>
