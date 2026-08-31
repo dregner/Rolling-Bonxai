@@ -204,23 +204,13 @@ void RollingBonxaiServer::publishStats()
   const auto now_time = now();
 
   if (voxel_pub_) {
-    std::vector<Eigen::Vector3d> points;
-    occupancy_map_->getOccupiedVoxels(points);
+    pcl::PointCloud<pcl::PointXYZRGB> cloud;
+    occupancy_map_->getOccupiedVoxels(cloud.points);
 
-    if (!points.empty()) {
-      pcl::PointCloud<pcl::PointXYZRGB> cloud;
-      cloud.reserve(points.size());
-
-      for (const auto& p : points) {
-        pcl::PointXYZRGB pt;
-        pt.x = p.x();
-        pt.y = p.y();
-        pt.z = p.z();
-        pt.r = 255;
-        pt.g = 0;
-        pt.b = 0;
-        cloud.push_back(pt);
-      }
+    if (!cloud.empty()) {
+      cloud.width = cloud.points.size();
+      cloud.height = 1;
+      cloud.is_dense = true;
 
       sensor_msgs::msg::PointCloud2 msg;
       pcl::toROSMsg(cloud, msg);
@@ -333,13 +323,13 @@ void RollingBonxaiServer::pointcloudCallback(
       server_params_.frame_id,
       msg->header.frame_id,
       msg->header.stamp,
-      rclcpp::Duration::from_seconds(0.1));
+      rclcpp::Duration::from_seconds(1.0));
   } catch (tf2::TransformException& ex) {
     RCLCPP_WARN(get_logger(), "TF failed: %s", ex.what());
     return;
   }
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromROSMsg(*msg, *cloud);
   if (cloud->empty()) return;
 
@@ -356,7 +346,7 @@ void RollingBonxaiServer::pointcloudCallback(
     tf.transform.rotation.y,
     tf.transform.rotation.z);
 
-  std::vector<Eigen::Vector3d> pts;
+  std::vector<pcl::PointXYZRGB> pts;
   pts.reserve(cloud->size());
 
   for (const auto& p : cloud->points) {
@@ -370,7 +360,11 @@ void RollingBonxaiServer::pointcloudCallback(
         pm.z() > rolling_params_.map_params.occupancy_max_z)
       continue;
 
-    pts.push_back(pm);
+    pcl::PointXYZRGB pt = p;
+    pt.x = pm.x();
+    pt.y = pm.y();
+    pt.z = pm.z();
+    pts.push_back(pt);
   }
 
   if (!pts.empty()) {

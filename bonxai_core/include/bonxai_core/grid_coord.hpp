@@ -149,15 +149,22 @@ inline PointOut ConvertPoint(const PointIn& v) {
   // clang-format on
   if constexpr (std::is_same_v<PointIn, PointOut>) {
     return v;
-  }
-  if constexpr (type_has_method_x<PointIn>::value) {
-    return {v.x(), v.y(), v.z()};
-  }
-  if constexpr (type_has_member_x<PointIn>::value) {
-    return {v.x, v.y, v.z};
-  }
-  if constexpr (type_is_vector<PointIn>::value) {
-    return {v[0], v[1], v[2]};
+  } else if constexpr (type_has_member_x<PointOut>::value) {
+    PointOut out{};
+    if constexpr (type_has_method_x<PointIn>::value) {
+      out.x = v.x(); out.y = v.y(); out.z = v.z();
+    } else if constexpr (type_has_member_x<PointIn>::value) {
+      out.x = v.x; out.y = v.y; out.z = v.z;
+    } else if constexpr (type_is_vector<PointIn>::value) {
+      out.x = v[0]; out.y = v[1]; out.z = v[2];
+    }
+    return out;
+  } else if constexpr (type_has_method_x<PointIn>::value) {
+    return PointOut(v.x(), v.y(), v.z());
+  } else if constexpr (type_has_member_x<PointIn>::value) {
+    return PointOut(v.x, v.y, v.z);
+  } else if constexpr (type_is_vector<PointIn>::value) {
+    return PointOut(v[0], v[1], v[2]);
   }
 }
 

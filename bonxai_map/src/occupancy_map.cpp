@@ -327,11 +327,11 @@ void OccupancyMap::getFreeVoxels(std::vector<CoordT>& coords) const {
 // Update Methods (non-const)
 // ============================================================================
 
-void OccupancyMap::addHitPoint(const Vector3D& point) {
-    addHitPoint(grid_.posToCoord(point));
+void OccupancyMap::addHitPoint(const Vector3D& point, uint8_t r, uint8_t g, uint8_t b) {
+    addHitPoint(grid_.posToCoord(point), r, g, b);
 }
 
-void OccupancyMap::addHitPoint(const CoordT& coord) {
+void OccupancyMap::addHitPoint(const CoordT& coord, uint8_t r, uint8_t g, uint8_t b) {
     ensureAccessorValid();
     ++total_insertions_;
     ++hit_points_added_;
@@ -343,6 +343,9 @@ void OccupancyMap::addHitPoint(const CoordT& coord) {
             cell->probability_log + options_.prob_hit_log,
             options_.clamp_max_log
         );
+        cell->r = r;
+        cell->g = g;
+        cell->b = b;
         cell->update_id = update_count_;
         hit_coords_.push_back(coord);
     }

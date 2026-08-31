@@ -63,6 +63,16 @@ public:
     // Configuration
     // ========================================================================
 
+    /** 
+     * @brief Struct of colored points
+     */
+    struct ColoredPoint {
+        Vector3D position;
+        uint8_t r{255};
+        uint8_t g{255};
+        uint8_t b{255};
+    };
+
     /**
      * @brief All parameters needed to initialise the RollingOccupancyMap
      */
@@ -123,6 +133,26 @@ public:
     // Primary Update Interface
     // ========================================================================
 
+    // Check if PointT has .r, .g, and .b members (works on C++17 & C++20)
+    template <typename T, typename = void>
+    struct has_rgb : std::false_type {};
+    template <typename T>
+    struct has_rgb<T, std::void_t<decltype(std::declval<T>().r), 
+                                decltype(std::declval<T>().g), 
+                                decltype(std::declval<T>().b)>> : std::true_type {};
+
+    // Helper to safely extract RGB or fallback to default
+    template <typename PointT>
+    static inline std::tuple<uint8_t, uint8_t, uint8_t> extractRGB(const PointT& pt) {
+        if constexpr (has_rgb<PointT>::value) {
+            return { static_cast<uint8_t>(pt.r), 
+                     static_cast<uint8_t>(pt.g), 
+                     static_cast<uint8_t>(pt.b) };
+        } else {
+            return { 255, 255, 255 }; // Default fallback color if point has no RGB
+        }
+    }
+
     /**
      * @brief Insert a point cloud observation (primary update function)
      * 
@@ -130,7 +160,9 @@ public:
      * (dispatching rays across chunks) followed by rolling update
      * (transition management, chunk loading/eviction).
      * 
-     * @tparam PointT Point type with x,y,z fields (e.g., pcl::PointXYZ, Eigen::Vector3d)
+     * @tparam PointT Point type with x,y,z fields (e.g., pcl::PointXYZ, pcl::PointXYZRGB, Eigen::Vector3d)
+     * @tparam SourceT Sensor position type
+     * @tparam VelT Sensor velocity type
      * @tparam Allocator Allocator type for vector
      * 
      * @param points Point cloud in map (global) frame
@@ -138,27 +170,34 @@ public:
      * @param source_lin_vel Sensor linear velocity in map frame
      * @param max_range Maximum valid sensor range (meters)
      */
-    template <typename PointT, typename Allocator = std::allocator<PointT>>
+    template <typename PointT, 
+              typename SourceT = Eigen::Vector3d, 
+              typename VelT = Eigen::Vector3d, 
+              typename Allocator = std::allocator<PointT>>
     void insertPointCloud(const std::vector<PointT, Allocator>& points,
-                          const PointT& source,
-                          const PointT& source_lin_vel,
+                          const SourceT& source,
+                          const VelT& source_lin_vel,
                           double max_range)
     {
-        // Convert source and velocity to Eigen::Vector3d
+        // Convert source and velocity (only needs x, y, z)
         const Vector3D source_eigen = Bonxai::ConvertPoint<Vector3D>(source);
         const Vector3D velocity_eigen = Bonxai::ConvertPoint<Vector3D>(source_lin_vel);
 
-        // Convert all points to Eigen::Vector3d
-        std::vector<Vector3D> points_eigen;
-        points_eigen.reserve(points.size());
+        std::vector<ColoredPoint> colored_points;
+        colored_points.reserve(points.size());
         for (const auto& pt : points) {
-            points_eigen.emplace_back(Bonxai::ConvertPoint<Vector3D>(pt));
+            ColoredPoint cp;
+            // Bonxai::ConvertPoint extracts x, y, z from PointT
+            cp.position = Bonxai::ConvertPoint<Vector3D>(pt);
+            // Safely extract RGB if available, or default to white (255, 255, 255)
+            auto [r, g, b] = extractRGB(pt);
+            cp.r = r;
+            cp.g = g;
+            cp.b = b;
+            colored_points.push_back(cp);
         }
 
-        // Perform occupancy update (dispatch rays to chunks)
-        updateOccupancy(points_eigen, source_eigen, max_range);
-
-        // Perform rolling update (transitions, load/evict)
+        updateOccupancy(colored_points, source_eigen, max_range);
         updateRolling(source_eigen, velocity_eigen);
     }
 
@@ -341,25 +380,27 @@ public:
      * @tparam PointT Point type with x,y,z fields (e.g., Eigen::Vector3d, pcl::PointXYZ)
      * @param points Output vector (cleared before filling)
      */
-    template <typename PointT>
-    void getOccupiedVoxels(std::vector<PointT>& points) const {
-        // Extract the coords
-        std::vector<CoordT> coords;
-        getOccupiedVoxels(coords);
-        
-        // Clear and reserve space for the points
+    template <typename PointT, typename Allocator = std::allocator<PointT>>
+    void getOccupiedVoxels(std::vector<PointT, Allocator>& points) const {
         points.clear();
-        points.reserve(coords.size());
-        
-        // For every coord - > Bonxai::CoordT, convert to positionCoordinate
-        for (const auto& coord : coords) {
-            // this world coord point is a Vec3D
-            auto world_coord_point = c_sys_->voxelToPositionCoordinate(coord);
-            // Convert to whatever PointT the user is asking for
-            auto world_point_to_return = Bonxai::ConvertPoint<PointT>(world_coord_point);
-            // Push back into the points
-            points.push_back(world_point_to_return);
-        }
+        active_chunks_.forEachChunk(
+            [this, &points](const ChunkCoord&, const ManagedChunk& chunk) {
+                if (const auto* map = chunk.getConstMap()) {
+                    map->getGrid().forEachCell([this, &points, map](const Bonxai::Occupancy::CellOcc& cell, const CoordT& coord) {
+                        if (cell.probability_log > map->getOptions().occupancy_threshold_log) {
+                            auto world_pos = c_sys_->voxelToPositionCoordinate(coord);
+                            PointT pt = Bonxai::ConvertPoint<PointT>(world_pos);
+                            if constexpr (has_rgb<PointT>::value) {
+                                pt.r = cell.r;
+                                pt.g = cell.g;
+                                pt.b = cell.b;
+                            }
+                            points.push_back(pt);
+                        }
+                    });
+                }
+            }
+        );
     }
 
     /**
@@ -452,7 +493,7 @@ private:
      * @param source Sensor position in map frame
      * @param max_range Maximum valid sensor range (meters)
      */
-    void updateOccupancy(const std::vector<Vector3D>& points,
+    void updateOccupancy(const std::vector<ColoredPoint>& points,
                          const Vector3D& source,
                          double max_range);
 

@@ -54,6 +54,10 @@ struct OccupancyOptions {
 struct CellOcc {
     int32_t update_id{4};                   ///< Update cycle ID (cycles: 1→2→3→1...)
     int32_t probability_log{28};            ///< Occupancy log-odds (default: unknown)
+    uint8_t r{255};                         ///< Red (0-255)
+    uint8_t g{255};                         ///< Green (0-255)
+    uint8_t b{255};                         ///< Blue (0-255)
+    uint8_t _pad{0};                        ///< Alignment padding (trivially copyable)
     
     CellOcc();
 };
@@ -439,16 +443,22 @@ public:
     /**
      * @brief Add a hit observation (occupied voxel)
      * @param point 3D position in map frame
+     * @param r Red channel (default 255)
+     * @param g Green channel (default 255)
+     * @param b Blue channel (default 255)
      * @note Uses cached mutable accessor for efficiency
      */
-    void addHitPoint(const Vector3D& point);
+    void addHitPoint(const Vector3D& point, uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
     
     /**
      * @brief Add a hit observation (occupied voxel)
      * @param coord Voxel coordinate
+     * @param r Red channel (default 255)
+     * @param g Green channel (default 255)
+     * @param b Blue channel (default 255)
      * @note Prefer this overload if you already have voxel coordinates
      */
-    void addHitPoint(const CoordT& coord);
+    void addHitPoint(const CoordT& coord, uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
     
     /**
      * @brief Add a miss observation (free space)
@@ -488,9 +498,16 @@ public:
      * map.insertPointCloud(lidar_points, sensor_origin, 30.0);
      * @endcode
      */
-    template <typename PointT, typename Allocator>
+    template <typename T, typename = void>
+    struct has_rgb : std::false_type {};
+    template <typename T>
+    struct has_rgb<T, std::void_t<decltype(std::declval<T>().r), 
+                                decltype(std::declval<T>().g), 
+                                decltype(std::declval<T>().b)>> : std::true_type {};
+
+    template <typename PointT, typename SourceT = PointT, typename Allocator = std::allocator<PointT>>
     void insertPointCloud(const std::vector<PointT, Allocator>& points,
-                          const PointT& origin,
+                          const SourceT& origin,
                           double max_range) {
         const auto from_point = ConvertPoint<Vector3D>(origin);
         const double max_range_sq = max_range * max_range;
@@ -509,7 +526,11 @@ public:
                 const Vector3D new_to_point = from_point + (vector_from_to_unit * max_range);
                 addMissPoint(new_to_point);
             } else {
-                addHitPoint(to_point);
+                if constexpr (has_rgb<PointT>::value) {
+                    addHitPoint(to_point, point.r, point.g, point.b);
+                } else {
+                    addHitPoint(to_point);
+                }
             }
         }
         

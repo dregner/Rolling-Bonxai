@@ -111,7 +111,7 @@ void RollingOccupancyMap::buildFactories()
 // Occupancy Update
 // ============================================================================
 
-void RollingOccupancyMap::updateOccupancy(const std::vector<Vector3D>& points,
+void RollingOccupancyMap::updateOccupancy(const std::vector<ColoredPoint>& points,
                                           const Vector3D& source,
                                           double max_range) 
 {
@@ -149,7 +149,7 @@ void RollingOccupancyMap::updateOccupancy(const std::vector<Vector3D>& points,
         // ----------------------------------------------------------------
         
         // Vector from source to the point
-        Vector3D source2pointvec = point - source;
+        Vector3D source2pointvec = point.position - source;
 
         // Compute the distance squared
         double dist_squared_source2point = source2pointvec.squaredNorm();
@@ -163,7 +163,7 @@ void RollingOccupancyMap::updateOccupancy(const std::vector<Vector3D>& points,
             is_hit = false;
         }
         else {
-            end_point = point;
+            end_point = point.position;
             is_hit = true;
         }
 
@@ -188,7 +188,7 @@ void RollingOccupancyMap::updateOccupancy(const std::vector<Vector3D>& points,
         Bonxai::OccupancyMap* endpoint_mutable_map = endpoint_chunk->getMutableMap();
 
         if (is_hit) {
-            endpoint_mutable_map->addHitPoint(endpoint_vox_coord);
+            endpoint_mutable_map->addHitPoint(endpoint_vox_coord, point.r, point.g, point.b);
         } else {
             endpoint_mutable_map->addMissPoint(endpoint_vox_coord);
         }
