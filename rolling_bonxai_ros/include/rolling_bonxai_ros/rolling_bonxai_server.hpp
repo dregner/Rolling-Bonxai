@@ -3,6 +3,13 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <deque>
+#include <chrono>
+#include <std_msgs/msg/string.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+#include "rolling_bonxai_ros/icp_frontend.hpp"
+#include "rolling_bonxai_ros/sonar_clean_map.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -55,6 +62,7 @@ class RollingBonxaiServer : public rclcpp::Node
 public:
   explicit RollingBonxaiServer(
     const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
+  ~RollingBonxaiServer() override;
 
 private:
   /**
@@ -130,6 +138,11 @@ private:
    */
   void pointcloudCallback(
     const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+  void processCloudQueue();
+  void publishCorrection(const rclcpp::Time& stamp);
+  void publishCleanMap();
+  void processCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& msg,
+                    const geometry_msgs::msg::TransformStamped& tf);
 
 private:
   ServerParams server_params_;
@@ -143,6 +156,29 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
 
   std::unique_ptr<RollingBonxai::RollingOccupancyMap> occupancy_map_;
+  std::unique_ptr<IcpFrontend> icp_;
+  SonarCleanConfig clean_config_;
+  std::unique_ptr<SonarCoherenceFilter> coherence_filter_;
+  std::unique_ptr<RollingSonarCleanMap> clean_map_;
+  std::string clean_save_path_;
+  int clean_publish_max_points_{200000};
+  double clean_publish_rate_{1};
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr clean_pub_;
+  rclcpp::TimerBase::SharedPtr clean_publish_timer_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr save_clean_srv_;
+  double pose_time_offset_{0}, max_tf_wait_{3};
+  bool ignore_static_body_tf_{false};
+  std::string reconstruction_frame_;
+  struct QueuedCloud {
+    sensor_msgs::msg::PointCloud2::SharedPtr cloud;
+    std::chrono::steady_clock::time_point received;
+  };
+  std::deque<QueuedCloud> cloud_queue_;
+  rclcpp::TimerBase::SharedPtr cloud_timer_;
+  rclcpp::TimerBase::SharedPtr correction_timer_;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> correction_broadcaster_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr icp_diagnostics_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr corrected_pose_pub_;
 
   // Stats publishers
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr voxel_pub_;

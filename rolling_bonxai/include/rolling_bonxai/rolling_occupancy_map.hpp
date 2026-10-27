@@ -368,6 +368,16 @@ public:
      */
     void getOccupiedVoxels(std::vector<CoordT>& coords) const;
 
+    // Main update thread only. Prepare loaded chunks before querying or casting rays.
+    void prepareForPose(const Vector3D& source, const Vector3D& velocity = Vector3D::Zero()) {
+        updateRolling(source, velocity);
+    }
+
+    // Bounded, deterministic reservoir of occupied centers inside a local sphere.
+    // No global point cloud is materialized. The returned vector is an owned snapshot.
+    void getLocalOccupiedPoints(const Vector3D& center, double radius, size_t max_points,
+                                std::vector<Vector3D>& points) const;
+
     /**
      * @brief Extract all free voxel coordinates across all active chunks
      * @param coords Output vector (cleared before filling)

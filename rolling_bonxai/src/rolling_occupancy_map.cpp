@@ -4,6 +4,32 @@
 
 namespace RollingBonxai
 {
+void RollingOccupancyMap::getLocalOccupiedPoints(
+    const Vector3D& center, double radius, size_t max_points,
+    std::vector<Vector3D>& points) const
+{
+    points.clear();
+    if (!max_points || !(radius > 0)) return;
+    size_t seen = 0;
+    uint64_t random = 42;
+    active_chunks_.forEachChunk([&](const ChunkCoord&, const ManagedChunk& chunk) {
+        const auto* map = chunk.getConstMap();
+        if (!map) return;
+        map->getGrid().forEachCell([&](const Bonxai::Occupancy::CellOcc& cell, const CoordT& coord) {
+            if (cell.probability_log <= map->getOptions().occupancy_threshold_log) return;
+            const auto p = c_sys_->voxelToPositionCoordinate(coord);
+            if ((p - center).squaredNorm() > radius * radius) return;
+            ++seen;
+            if (points.size() < max_points) points.push_back(p);
+            else {
+                random ^= random << 13; random ^= random >> 7; random ^= random << 17;
+                const size_t index = random % seen;
+                if (index < max_points) points[index] = p;
+            }
+        });
+    });
+}
+
 RollingOccupancyMap::RollingOccupancyMap(const AllParameters& params, std::shared_ptr<Logger> logger)
     :
     params_(params),
