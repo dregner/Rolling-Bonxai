@@ -149,7 +149,6 @@ inline PointOut ConvertPoint(const PointIn& v) {
   // clang-format on
   if constexpr (std::is_same_v<PointIn, PointOut>) {
     return v;
-<<<<<<< HEAD:bonxai_core/include/bonxai_core/grid_coord.hpp
   } else if constexpr (type_has_member_x<PointOut>::value) {
     PointOut out{};
     if constexpr (type_has_method_x<PointIn>::value) {
@@ -166,17 +165,6 @@ inline PointOut ConvertPoint(const PointIn& v) {
     return PointOut(v.x, v.y, v.z);
   } else if constexpr (type_is_vector<PointIn>::value) {
     return PointOut(v[0], v[1], v[2]);
-=======
-  }
-  if constexpr (type_has_method_x<PointIn>::value) {
-    return {static_cast<float>(v.x()), static_cast<float>(v.y()), static_cast<float>(v.z())};
-  }
-  if constexpr (type_has_member_x<PointIn>::value) {
-    return {static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z)};
-  }
-  if constexpr (type_is_vector<PointIn>::value) {
-    return {static_cast<float>(v[0]), static_cast<float>(v[1]), static_cast<float>(v[2])};
->>>>>>> main:include/bonxai_core/grid_coord.hpp
   }
 }
 
