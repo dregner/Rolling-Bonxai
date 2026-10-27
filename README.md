@@ -358,3 +358,7 @@ radius = ceil(max_velocity_m_s × reaction_time_s / chunk_size_m)
 ```
 
 For example: 4 m/s robot, 1.5 s reaction, 5 m chunks → `ceil(4 × 1.5 / 5) = ceil(1.2) = 2`.
+
+## Optional local ICP frontend
+
+A bounded sonar ICP frontend and reproducible bag comparison are documented in [rolling_bonxai_ros/README_icp.md](rolling_bonxai_ros/README_icp.md). The current BlueROV results, including reference-equivalent clean filtering, are in [the clean-map experiment report](experiments/bluerov_pose_20260915_162225/clean_refactor/REPORT.md).
