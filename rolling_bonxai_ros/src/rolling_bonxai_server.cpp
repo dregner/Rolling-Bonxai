@@ -192,7 +192,7 @@ void RollingBonxaiServer::initTF()
 {
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(get_clock());
   if (icp_->config().enabled && ignore_static_body_tf_)
-    tf_listener_ = std::make_shared<BodyTfListener>(*tf_buffer_, this,
+    body_tf_listener_ = std::make_shared<BodyTfListener>(*tf_buffer_, this,
       server_params_.frame_id, server_params_.base_frame_id);
   else
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);

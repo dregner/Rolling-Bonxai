@@ -43,6 +43,8 @@
 namespace RollingBonxai
 {
 
+class BodyTfListener;
+
 struct ServerParams
 {
   std::string frame_id;
@@ -152,6 +154,7 @@ private:
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+  std::shared_ptr<BodyTfListener> body_tf_listener_;
 
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
 
